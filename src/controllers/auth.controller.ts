@@ -3,14 +3,14 @@ import * as authService from '../services/auth.service';
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password } = req.body;
+    const { name, email, password } = req.body;
 
-    if (!email || !password) {
-      res.status(400).json({ error: 'Email and password are required' });
+    if (!name || !email || !password) {
+      res.status(400).json({ error: 'Name, email and password are required' });
       return;
     }
 
-    const user = await authService.register({ email, password });
+    const user = await authService.register({ name, email, password });
     res.status(201).json({ user });
   } catch (error: unknown) {
     if (error instanceof Error && 'code' in error && (error as { code: string }).code === '23505') {

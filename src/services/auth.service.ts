@@ -5,12 +5,12 @@ import { User, UserWithoutPassword, AuthPayload } from '../models/user.model';
 
 const SALT_ROUNDS = 10;
 
-export const register = async ({ email, password }: AuthPayload): Promise<UserWithoutPassword> => {
+export const register = async ({ name, email, password }: AuthPayload & { name: string }): Promise<UserWithoutPassword> => {
   const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
   const result = await pool.query<User>(
-    'INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id, email, created_at',
-    [email, hashedPassword]
+    'INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id, name, email, created_at, updated_at',
+    [name, email, hashedPassword]
   );
 
   return result.rows[0];

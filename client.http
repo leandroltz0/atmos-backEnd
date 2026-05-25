@@ -1,0 +1,18 @@
+### Registrar un usuario
+POST http://localhost:5008/auth/register
+Content-Type: application/json
+
+{
+  "name": "Leandro",
+  "email": "test@correo.com",
+  "password": "123456"
+}
+
+### Iniciar sesión
+POST http://localhost:5008/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@correo.com",
+  "password": "123456"
+}
