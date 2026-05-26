@@ -1,11 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
+// ---------------------------------------------------------------------------
+// Tipos
+// ---------------------------------------------------------------------------
+
 interface JwtPayload {
   userId: number;
   email: string;
 }
 
+// Extiende el tipo Request de Express para incluir el usuario autenticado.
 declare global {
   namespace Express {
     interface Request {
@@ -14,6 +19,14 @@ declare global {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Middleware
+// ---------------------------------------------------------------------------
+
+/**
+ * Middleware de autenticación JWT.
+ * Verifica el header `Authorization: Bearer <token>` y adjunta el payload al request.
+ */
 export const authMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   const authHeader = req.headers.authorization;
 

@@ -1,5 +1,9 @@
 import { pool } from '../config/db';
-import { SearchHistoryEntry, SearchHistoryRow } from '../models/app.model';
+import { SearchHistoryEntry, SearchHistoryRow } from '../models/search-history.model';
+
+// ---------------------------------------------------------------------------
+// Tipos locales
+// ---------------------------------------------------------------------------
 
 const SEARCH_HISTORY_LIMIT = 10;
 
@@ -10,6 +14,13 @@ interface CreateSearchHistoryInput {
   lon?: number;
 }
 
+
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Convierte una fila de la base de datos en una entrada de historial normalizada. */
 const toSearchHistoryEntry = (row: SearchHistoryRow): SearchHistoryEntry => ({
   cityId: String(row.id),
   label: row.city_name,
@@ -21,6 +32,11 @@ const toSearchHistoryEntry = (row: SearchHistoryRow): SearchHistoryEntry => ({
   searchedAt: row.searched_at,
 });
 
+// ---------------------------------------------------------------------------
+// Funciones públicas
+// ---------------------------------------------------------------------------
+
+/** Obtiene el historial de búsqueda del usuario, ordenado por fecha descendente. */
 export const listSearchHistory = async (userId: number): Promise<SearchHistoryEntry[]> => {
   const result = await pool.query<SearchHistoryRow>(
     `SELECT id, user_id, city_name, country, lat, lon, searched_at
@@ -33,6 +49,10 @@ export const listSearchHistory = async (userId: number): Promise<SearchHistoryEn
   return result.rows.map(toSearchHistoryEntry);
 };
 
+/**
+ * Agrega o actualiza una entrada en el historial de búsqueda.
+ * Si ya existe una entrada idéntica, actualiza su fecha. Mantiene un máximo de 10 entradas.
+ */
 export const addSearchHistoryEntry = async (
   userId: number,
   input: CreateSearchHistoryInput
@@ -88,6 +108,7 @@ export const addSearchHistoryEntry = async (
   return toSearchHistoryEntry(row);
 };
 
+/** Elimina todo el historial de búsqueda del usuario. */
 export const clearSearchHistory = async (userId: number): Promise<void> => {
   await pool.query('DELETE FROM search_history WHERE user_id = $1', [userId]);
 };

@@ -1,6 +1,10 @@
 import { pool } from '../config/db';
-import { FavoriteCity, FavoriteCityRow } from '../models/app.model';
+import { FavoriteCity, FavoriteCityRow } from '../models/favorite.model';
 import { AppError } from '../utils/http';
+
+// ---------------------------------------------------------------------------
+// Tipos locales
+// ---------------------------------------------------------------------------
 
 interface CreateFavoriteInput {
   name: string;
@@ -9,6 +13,13 @@ interface CreateFavoriteInput {
   lon: number;
 }
 
+
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Convierte una fila de la base de datos en una ciudad favorita normalizada. */
 const toFavoriteCity = (row: FavoriteCityRow, sortOrder: number): FavoriteCity => ({
   cityId: String(row.id),
   name: row.name,
@@ -22,6 +33,11 @@ const toFavoriteCity = (row: FavoriteCityRow, sortOrder: number): FavoriteCity =
   createdAt: row.created_at,
 });
 
+// ---------------------------------------------------------------------------
+// Funciones públicas
+// ---------------------------------------------------------------------------
+
+/** Obtiene todas las ciudades favoritas de un usuario, ordenadas por fecha de creación. */
 export const listFavorites = async (userId: number): Promise<FavoriteCity[]> => {
   const result = await pool.query<FavoriteCityRow>(
     `SELECT id, user_id, name, country, lat, lon, is_default, created_at
@@ -34,6 +50,7 @@ export const listFavorites = async (userId: number): Promise<FavoriteCity[]> => 
   return result.rows.map((row, index) => toFavoriteCity(row, index));
 };
 
+/** Agrega una nueva ciudad favorita. Lanza error 409 si ya existe. */
 export const addFavorite = async (
   userId: number,
   input: CreateFavoriteInput
@@ -68,17 +85,16 @@ export const addFavorite = async (
   return toFavoriteCity(row, sortOrder >= 0 ? sortOrder : favorites.length);
 };
 
+/** Elimina una ciudad favorita por su ID. Lanza error 404 si no existe. */
 export const removeFavorite = async (userId: number, cityId: string): Promise<void> => {
-  const result = await pool.query(
-    'DELETE FROM favorite_cities WHERE user_id = $1 AND id = $2',
-    [userId, Number(cityId)]
-  );
+  const result = await pool.query('DELETE FROM favorite_cities WHERE user_id = $1 AND id = $2', [userId, Number(cityId)]);
 
   if (result.rowCount === 0) {
     throw new AppError(404, 'Favorite city not found');
   }
 };
 
+/** Reordena las ciudades favoritas según el orden de IDs proporcionado. */
 export const reorderFavorites = async (userId: number, orderedCityIds: string[]): Promise<FavoriteCity[]> => {
   const numericIds = orderedCityIds.map((cityId) => Number(cityId));
 

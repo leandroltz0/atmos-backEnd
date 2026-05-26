@@ -1,10 +1,19 @@
 import { AppError } from './http';
 
+// ---------------------------------------------------------------------------
+// Tipos locales
+// ---------------------------------------------------------------------------
+
 interface StringOptions {
   minLength?: number;
   maxLength?: number;
 }
 
+// ---------------------------------------------------------------------------
+// Validadores de strings
+// ---------------------------------------------------------------------------
+
+/** Valida y retorna un string requerido (trimmed). Lanza 400 si falta o no cumple las restricciones. */
 export const parseRequiredString = (
   value: unknown,
   fieldName: string,
@@ -31,6 +40,7 @@ export const parseRequiredString = (
   return trimmedValue;
 };
 
+/** Valida y retorna un string opcional. Retorna undefined si el valor es null/undefined. */
 export const parseOptionalString = (
   value: unknown,
   fieldName: string,
@@ -43,6 +53,11 @@ export const parseOptionalString = (
   return parseRequiredString(value, fieldName, options);
 };
 
+// ---------------------------------------------------------------------------
+// Validadores numéricos
+// ---------------------------------------------------------------------------
+
+/** Valida y retorna un número finito. Acepta strings numéricas. */
 export const parseNumber = (value: unknown, fieldName: string): number => {
   const numericValue = typeof value === 'number' ? value : Number(value);
 
@@ -53,18 +68,7 @@ export const parseNumber = (value: unknown, fieldName: string): number => {
   return numericValue;
 };
 
-export const parseOptionalBoolean = (value: unknown, fieldName: string): boolean | undefined => {
-  if (value === undefined || value === null) {
-    return undefined;
-  }
-
-  if (typeof value !== 'boolean') {
-    throw new AppError(400, `${fieldName} must be a boolean`);
-  }
-
-  return value;
-};
-
+/** Valida y retorna un entero opcional con restricciones de rango. */
 export const parseOptionalInteger = (
   value: unknown,
   fieldName: string,
@@ -91,5 +95,27 @@ export const parseOptionalInteger = (
   return numericValue;
 };
 
+// ---------------------------------------------------------------------------
+// Validadores booleanos
+// ---------------------------------------------------------------------------
+
+/** Valida y retorna un booleano opcional. */
+export const parseOptionalBoolean = (value: unknown, fieldName: string): boolean | undefined => {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (typeof value !== 'boolean') {
+    throw new AppError(400, `${fieldName} must be a boolean`);
+  }
+
+  return value;
+};
+
+// ---------------------------------------------------------------------------
+// Validadores compuestos
+// ---------------------------------------------------------------------------
+
+/** Valida una contraseña: string requerido de 6 a 255 caracteres. */
 export const parsePassword = (value: unknown, fieldName: string): string =>
   parseRequiredString(value, fieldName, { minLength: 6, maxLength: 255 });

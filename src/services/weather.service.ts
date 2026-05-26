@@ -1,6 +1,11 @@
 import axios from 'axios';
+
 import { pool } from '../config/db';
 import { AppError } from '../utils/http';
+
+// ---------------------------------------------------------------------------
+// Tipos de caché
+// ---------------------------------------------------------------------------
 
 type WeatherCacheType = 'current' | 'forecast';
 
@@ -15,6 +20,10 @@ interface WeatherCacheRow {
   fetched_at: Date | null;
   expires_at: Date;
 }
+
+// ---------------------------------------------------------------------------
+// Tipos de la API externa (Open-Meteo)
+// ---------------------------------------------------------------------------
 
 interface OpenMeteoCurrentResponse {
   latitude: number;
@@ -54,6 +63,10 @@ interface OpenMeteoForecastResponse extends OpenMeteoCurrentResponse {
     sunset: string[];
   };
 }
+
+// ---------------------------------------------------------------------------
+// Tipos de respuesta pública
+// ---------------------------------------------------------------------------
 
 export interface WeatherCurrentResponse {
   location: {
@@ -111,13 +124,25 @@ export interface WeatherForecastResponse {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Constantes
+// ---------------------------------------------------------------------------
+
 const CURRENT_CACHE_TTL_MINUTES = 10;
 const FORECAST_CACHE_TTL_MINUTES = 30;
+
+// ---------------------------------------------------------------------------
+// Configuración del cliente HTTP
+// ---------------------------------------------------------------------------
 
 const weatherApi = axios.create({
   baseURL: 'https://api.open-meteo.com/v1',
   timeout: 7000,
 });
+
+// ---------------------------------------------------------------------------
+// Variables de la API (query params)
+// ---------------------------------------------------------------------------
 
 const currentVariables = [
   'temperature_2m',
@@ -148,6 +173,13 @@ const dailyVariables = [
   'sunset',
 ].join(',');
 
+
+
+// ---------------------------------------------------------------------------
+// Normalizers (API externa → respuesta pública)
+// ---------------------------------------------------------------------------
+
+/** Normaliza la respuesta de clima actual de Open-Meteo al formato público. */
 const normalizeCurrent = (
   data: OpenMeteoCurrentResponse,
   source: 'cache' | 'live'
@@ -184,6 +216,7 @@ const normalizeCurrent = (
   };
 };
 
+/** Normaliza la respuesta de pronóstico de Open-Meteo al formato público. */
 const normalizeForecast = (
   data: OpenMeteoForecastResponse,
   source: 'cache' | 'live'
@@ -231,6 +264,11 @@ const normalizeForecast = (
   },
 });
 
+// ---------------------------------------------------------------------------
+// Caché helpers
+// ---------------------------------------------------------------------------
+
+/** Busca datos de clima en caché. Retorna null si no hay caché válido. */
 const getCachedWeather = async <T>(lat: number, lon: number, type: WeatherCacheType): Promise<T | null> => {
   const result = await pool.query<WeatherCacheRow>(
     `SELECT id, lat, lon, data, fetched_at, expires_at
@@ -243,7 +281,6 @@ const getCachedWeather = async <T>(lat: number, lon: number, type: WeatherCacheT
      LIMIT 1`,
     [lat, lon, type]
   );
-
   const row = result.rows[0];
 
   if (!row?.data?.payload) {
@@ -253,6 +290,7 @@ const getCachedWeather = async <T>(lat: number, lon: number, type: WeatherCacheT
   return row.data.payload as T;
 };
 
+/** Guarda datos de clima en caché con un TTL en minutos. */
 const setCachedWeather = async (
   lat: number,
   lon: number,
@@ -267,6 +305,11 @@ const setCachedWeather = async (
   );
 };
 
+// ---------------------------------------------------------------------------
+// Funciones públicas
+// ---------------------------------------------------------------------------
+
+/** Obtiene el clima actual para una coordenada. Usa caché si está disponible. */
 export const getCurrentWeather = async (
   lat: number,
   lon: number
@@ -306,6 +349,7 @@ export const getCurrentWeather = async (
   }
 };
 
+/** Obtiene el pronóstico de 7 días para una coordenada. Usa caché si está disponible. */
 export const getForecastWeather = async (
   lat: number,
   lon: number

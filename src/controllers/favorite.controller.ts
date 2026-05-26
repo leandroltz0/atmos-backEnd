@@ -1,8 +1,14 @@
 import { Request, Response } from 'express';
+
 import * as favoriteService from '../services/favorite.service';
 import { getAuthenticatedUserId, handleControllerError, isRecord } from '../utils/http';
 import { parseNumber, parseRequiredString } from '../utils/validation';
 
+// ---------------------------------------------------------------------------
+// Handlers
+// ---------------------------------------------------------------------------
+
+/** GET /favorites — Lista las ciudades favoritas del usuario. */
 export const getFavorites = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getAuthenticatedUserId(req);
@@ -14,6 +20,7 @@ export const getFavorites = async (req: Request, res: Response): Promise<void> =
   }
 };
 
+/** POST /favorites — Agrega una nueva ciudad favorita. */
 export const createFavorite = async (req: Request, res: Response): Promise<void> => {
   try {
     if (!isRecord(req.body)) {
@@ -40,6 +47,7 @@ export const createFavorite = async (req: Request, res: Response): Promise<void>
   }
 };
 
+/** DELETE /favorites/:cityId — Elimina una ciudad favorita. */
 export const deleteFavorite = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getAuthenticatedUserId(req);
@@ -52,6 +60,7 @@ export const deleteFavorite = async (req: Request, res: Response): Promise<void>
   }
 };
 
+/** PATCH /favorites/reorder — Reordena las ciudades favoritas. */
 export const reorderFavorites = async (req: Request, res: Response): Promise<void> => {
   try {
     if (!isRecord(req.body)) {

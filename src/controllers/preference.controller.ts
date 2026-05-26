@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+
 import * as preferenceService from '../services/preference.service';
 import { getAuthenticatedUserId, handleControllerError, isRecord } from '../utils/http';
 import {
@@ -7,6 +8,11 @@ import {
   parseOptionalString,
 } from '../utils/validation';
 
+// ---------------------------------------------------------------------------
+// Handlers
+// ---------------------------------------------------------------------------
+
+/** GET /preferences — Obtiene las preferencias del usuario. */
 export const getPreferences = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getAuthenticatedUserId(req);
@@ -18,6 +24,7 @@ export const getPreferences = async (req: Request, res: Response): Promise<void>
   }
 };
 
+/** PATCH /preferences — Actualiza parcialmente las preferencias del usuario. */
 export const updatePreferences = async (req: Request, res: Response): Promise<void> => {
   try {
     if (!isRecord(req.body)) {

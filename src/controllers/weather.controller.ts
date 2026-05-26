@@ -1,8 +1,14 @@
 import { Request, Response } from 'express';
+
 import * as weatherService from '../services/weather.service';
 import { handleControllerError } from '../utils/http';
 import { parseNumber } from '../utils/validation';
 
+// ---------------------------------------------------------------------------
+// Handlers
+// ---------------------------------------------------------------------------
+
+/** GET /weather/current — Obtiene el clima actual para una coordenada. */
 export const getCurrentWeather = async (req: Request, res: Response): Promise<void> => {
   try {
     const lat = parseNumber(req.query.lat, 'lat');
@@ -15,6 +21,7 @@ export const getCurrentWeather = async (req: Request, res: Response): Promise<vo
   }
 };
 
+/** GET /weather/forecast — Obtiene el pronóstico de 7 días para una coordenada. */
 export const getForecastWeather = async (req: Request, res: Response): Promise<void> => {
   try {
     const lat = parseNumber(req.query.lat, 'lat');

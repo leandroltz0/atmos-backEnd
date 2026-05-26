@@ -1,5 +1,9 @@
 import { pool } from '../config/db';
-import { UserPreferences, UserPreferencesRow } from '../models/app.model';
+import { UserPreferences, UserPreferencesRow } from '../models/preference.model';
+
+// ---------------------------------------------------------------------------
+// Tipos locales
+// ---------------------------------------------------------------------------
 
 interface PreferencePatchInput {
   tempUnit?: string;
@@ -12,6 +16,10 @@ interface PreferencePatchInput {
   offlineMode?: boolean;
 }
 
+// ---------------------------------------------------------------------------
+// Constantes
+// ---------------------------------------------------------------------------
+
 const DEFAULT_PREFERENCES: UserPreferences = {
   tempUnit: 'celsius',
   windUnit: 'kmh',
@@ -23,6 +31,13 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   offlineMode: false,
 };
 
+
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Convierte una fila de la base de datos en preferencias normalizadas, aplicando valores por defecto. */
 const toPreferences = (row?: UserPreferencesRow): UserPreferences => ({
   tempUnit: row?.temp_unit ?? DEFAULT_PREFERENCES.tempUnit,
   windUnit: row?.wind_unit ?? DEFAULT_PREFERENCES.windUnit,
@@ -34,6 +49,11 @@ const toPreferences = (row?: UserPreferencesRow): UserPreferences => ({
   offlineMode: DEFAULT_PREFERENCES.offlineMode,
 });
 
+// ---------------------------------------------------------------------------
+// Funciones públicas
+// ---------------------------------------------------------------------------
+
+/** Obtiene las preferencias del usuario. Crea valores por defecto si no existen. */
 export const getPreferences = async (userId: number): Promise<UserPreferences> => {
   const result = await pool.query<UserPreferencesRow>(
     `SELECT id, user_id, temp_unit, wind_unit, language, created_at, updated_at
@@ -41,7 +61,6 @@ export const getPreferences = async (userId: number): Promise<UserPreferences> =
      WHERE user_id = $1`,
     [userId]
   );
-
   const row = result.rows[0];
 
   if (row) {
@@ -58,6 +77,7 @@ export const getPreferences = async (userId: number): Promise<UserPreferences> =
   return DEFAULT_PREFERENCES;
 };
 
+/** Actualiza parcialmente las preferencias del usuario (merge con valores actuales). */
 export const updatePreferences = async (
   userId: number,
   patch: PreferencePatchInput

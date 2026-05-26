@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+/** Pool de conexiones a PostgreSQL. */
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });

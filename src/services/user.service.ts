@@ -1,16 +1,27 @@
 import bcrypt from 'bcryptjs';
+
 import { pool } from '../config/db';
 import { User, UserWithoutPassword } from '../models/user.model';
 import { AppError } from '../utils/http';
 
+// ---------------------------------------------------------------------------
+// Constantes
+// ---------------------------------------------------------------------------
+
 const SALT_ROUNDS = 10;
 
+
+
+// ---------------------------------------------------------------------------
+// Funciones públicas
+// ---------------------------------------------------------------------------
+
+/** Obtiene el perfil del usuario actual (sin contraseña). Lanza error 404 si no existe. */
 export const getCurrentUserProfile = async (userId: number): Promise<UserWithoutPassword> => {
   const result = await pool.query<UserWithoutPassword>(
     'SELECT id, name, email, created_at, updated_at FROM users WHERE id = $1',
     [userId]
   );
-
   const user = result.rows[0];
 
   if (!user) {
@@ -20,6 +31,7 @@ export const getCurrentUserProfile = async (userId: number): Promise<UserWithout
   return user;
 };
 
+/** Actualiza el nombre del usuario. Lanza error 404 si no existe. */
 export const updateCurrentUserProfile = async (
   userId: number,
   name: string
@@ -28,7 +40,6 @@ export const updateCurrentUserProfile = async (
     'UPDATE users SET name = $1, updated_at = NOW() WHERE id = $2 RETURNING id, name, email, created_at, updated_at',
     [name, userId]
   );
-
   const user = result.rows[0];
 
   if (!user) {
@@ -38,6 +49,7 @@ export const updateCurrentUserProfile = async (
   return user;
 };
 
+/** Cambia la contraseña del usuario después de verificar la contraseña actual. */
 export const updateCurrentUserPassword = async (
   userId: number,
   currentPassword: string,
@@ -58,12 +70,13 @@ export const updateCurrentUserPassword = async (
 
   const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
 
-  await pool.query(
-    'UPDATE users SET password = $1, updated_at = NOW() WHERE id = $2',
-    [hashedPassword, userId]
-  );
+  await pool.query('UPDATE users SET password = $1, updated_at = NOW() WHERE id = $2', [hashedPassword, userId]);
 };
 
+/**
+ * Elimina la cuenta del usuario y todos sus datos asociados en una transacción.
+ * Orden: favoritos → historial → preferencias → usuario.
+ */
 export const deleteCurrentUser = async (userId: number): Promise<void> => {
   const client = await pool.connect();
 
