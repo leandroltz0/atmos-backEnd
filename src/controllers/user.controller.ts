@@ -44,7 +44,7 @@ export const updateMe = async (req: Request, res: Response): Promise<void> => {
 export const updatePassword = async (req: Request, res: Response): Promise<void> => {
   try {
     if (!isRecord(req.body)) {
-      res.status(400).json({ error: 'Invalid request body' });
+      res.status(401).json({ error: 'the resquest body is not valid' });
       return;
     }
 
