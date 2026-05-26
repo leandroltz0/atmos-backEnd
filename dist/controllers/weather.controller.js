@@ -33,12 +33,31 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = require("express");
-const authController = __importStar(require("../controllers/auth.controller"));
-const auth_middleware_1 = require("../middlewares/auth.middleware");
-const router = (0, express_1.Router)();
-router.post('/register', authController.register);
-router.post('/login', authController.login);
-router.get('/me', auth_middleware_1.authMiddleware, authController.me);
-router.post('/logout', auth_middleware_1.authMiddleware, authController.logout);
-exports.default = router;
+exports.getForecastWeather = exports.getCurrentWeather = void 0;
+const weatherService = __importStar(require("../services/weather.service"));
+const http_1 = require("../utils/http");
+const validation_1 = require("../utils/validation");
+const getCurrentWeather = async (req, res) => {
+    try {
+        const lat = (0, validation_1.parseNumber)(req.query.lat, 'lat');
+        const lon = (0, validation_1.parseNumber)(req.query.lon, 'lon');
+        const weather = await weatherService.getCurrentWeather(lat, lon);
+        res.json(weather);
+    }
+    catch (error) {
+        (0, http_1.handleControllerError)(res, error);
+    }
+};
+exports.getCurrentWeather = getCurrentWeather;
+const getForecastWeather = async (req, res) => {
+    try {
+        const lat = (0, validation_1.parseNumber)(req.query.lat, 'lat');
+        const lon = (0, validation_1.parseNumber)(req.query.lon, 'lon');
+        const forecast = await weatherService.getForecastWeather(lat, lon);
+        res.json(forecast);
+    }
+    catch (error) {
+        (0, http_1.handleControllerError)(res, error);
+    }
+};
+exports.getForecastWeather = getForecastWeather;

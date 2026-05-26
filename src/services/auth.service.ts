@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { pool } from '../config/db';
 import { User, UserWithoutPassword, AuthPayload } from '../models/user.model';
+import { AppError } from '../utils/http';
 
 const SALT_ROUNDS = 10;
 
@@ -43,4 +44,19 @@ export const login = async ({ email, password }: AuthPayload): Promise<{ token: 
   const { password: _, ...userWithoutPassword } = user;
 
   return { token, user: userWithoutPassword };
+};
+
+export const getCurrentUser = async (userId: number): Promise<UserWithoutPassword> => {
+  const result = await pool.query<UserWithoutPassword>(
+    'SELECT id, name, email, created_at, updated_at FROM users WHERE id = $1',
+    [userId]
+  );
+
+  const user = result.rows[0];
+
+  if (!user) {
+    throw new AppError(404, 'User not found');
+  }
+
+  return user;
 };

@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import * as authService from '../services/auth.service';
+import { getAuthenticatedUserId, handleControllerError } from '../utils/http';
+import { toPublicUser } from '../utils/user';
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -35,4 +37,21 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   } catch {
     res.status(401).json({ error: 'Invalid credentials' });
   }
+};
+
+export const me = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getAuthenticatedUserId(req);
+    const user = await authService.getCurrentUser(userId);
+
+    res.json({ user: toPublicUser(user) });
+  } catch (error) {
+    handleControllerError(res, error);
+  }
+};
+
+export const logout = async (_req: Request, res: Response): Promise<void> => {
+  res.json({
+    message: 'Logout handled client-side by removing the bearer token',
+  });
 };

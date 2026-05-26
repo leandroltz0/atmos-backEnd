@@ -1,6 +1,6 @@
 export interface User {
   id: number;
-  name: string;
+  name: string | null;
   email: string;
   password: string;
   created_at: Date;
@@ -9,7 +9,7 @@ export interface User {
 
 export interface UserWithoutPassword {
   id: number;
-  name: string;
+  name: string | null;
   email: string;
   created_at: Date;
   updated_at: Date;

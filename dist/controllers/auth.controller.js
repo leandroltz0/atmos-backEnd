@@ -33,16 +33,18 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.login = exports.register = void 0;
+exports.logout = exports.me = exports.login = exports.register = void 0;
 const authService = __importStar(require("../services/auth.service"));
+const http_1 = require("../utils/http");
+const user_1 = require("../utils/user");
 const register = async (req, res) => {
     try {
-        const { email, password } = req.body;
-        if (!email || !password) {
-            res.status(400).json({ error: 'Email and password are required' });
+        const { name, email, password } = req.body;
+        if (!name || !email || !password) {
+            res.status(400).json({ error: 'Name, email and password are required' });
             return;
         }
-        const user = await authService.register({ email, password });
+        const user = await authService.register({ name, email, password });
         res.status(201).json({ user });
     }
     catch (error) {
@@ -69,3 +71,20 @@ const login = async (req, res) => {
     }
 };
 exports.login = login;
+const me = async (req, res) => {
+    try {
+        const userId = (0, http_1.getAuthenticatedUserId)(req);
+        const user = await authService.getCurrentUser(userId);
+        res.json({ user: (0, user_1.toPublicUser)(user) });
+    }
+    catch (error) {
+        (0, http_1.handleControllerError)(res, error);
+    }
+};
+exports.me = me;
+const logout = async (_req, res) => {
+    res.json({
+        message: 'Logout handled client-side by removing the bearer token',
+    });
+};
+exports.logout = logout;

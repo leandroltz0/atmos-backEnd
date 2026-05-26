@@ -34,11 +34,8 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const authController = __importStar(require("../controllers/auth.controller"));
-const auth_middleware_1 = require("../middlewares/auth.middleware");
+const weatherController = __importStar(require("../controllers/weather.controller"));
 const router = (0, express_1.Router)();
-router.post('/register', authController.register);
-router.post('/login', authController.login);
-router.get('/me', auth_middleware_1.authMiddleware, authController.me);
-router.post('/logout', auth_middleware_1.authMiddleware, authController.logout);
+router.get('/current', weatherController.getCurrentWeather);
+router.get('/forecast', weatherController.getForecastWeather);
 exports.default = router;

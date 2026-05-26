@@ -33,12 +33,17 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = require("express");
-const authController = __importStar(require("../controllers/auth.controller"));
-const auth_middleware_1 = require("../middlewares/auth.middleware");
-const router = (0, express_1.Router)();
-router.post('/register', authController.register);
-router.post('/login', authController.login);
-router.get('/me', auth_middleware_1.authMiddleware, authController.me);
-router.post('/logout', auth_middleware_1.authMiddleware, authController.logout);
-exports.default = router;
+exports.searchCities = void 0;
+const cityService = __importStar(require("../services/city.service"));
+const http_1 = require("../utils/http");
+const searchCities = async (req, res) => {
+    try {
+        const query = typeof req.query.q === 'string' ? req.query.q : '';
+        const cities = await cityService.searchCities(query);
+        res.json({ cities });
+    }
+    catch (error) {
+        (0, http_1.handleControllerError)(res, error);
+    }
+};
+exports.searchCities = searchCities;
