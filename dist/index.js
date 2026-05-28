@@ -13,11 +13,20 @@ const preference_routes_1 = __importDefault(require("./routes/preference.routes"
 const search_history_routes_1 = __importDefault(require("./routes/search-history.routes"));
 const city_routes_1 = __importDefault(require("./routes/city.routes"));
 const weather_routes_1 = __importDefault(require("./routes/weather.routes"));
+// ---------------------------------------------------------------------------
+// Configuración
+// ---------------------------------------------------------------------------
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3000;
+// ---------------------------------------------------------------------------
+// Middlewares globales
+// ---------------------------------------------------------------------------
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
+// ---------------------------------------------------------------------------
+// Rutas
+// ---------------------------------------------------------------------------
 app.use('/auth', auth_routes_1.default);
 app.use('/users', user_routes_1.default);
 app.use('/favorites', favorite_routes_1.default);
@@ -25,6 +34,10 @@ app.use('/preferences', preference_routes_1.default);
 app.use('/search-history', search_history_routes_1.default);
 app.use('/cities', city_routes_1.default);
 app.use('/weather', weather_routes_1.default);
+app.use('/api/weather', weather_routes_1.default);
+// ---------------------------------------------------------------------------
+// Inicio del servidor
+// ---------------------------------------------------------------------------
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

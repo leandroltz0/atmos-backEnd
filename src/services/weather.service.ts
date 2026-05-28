@@ -7,7 +7,7 @@ import { AppError } from '../utils/http';
 // Tipos de caché
 // ---------------------------------------------------------------------------
 
-type WeatherCacheType = 'current' | 'forecast';
+type WeatherCacheType = 'current' | 'forecast' | 'air-quality';
 
 interface WeatherCacheRow {
   id: number;
@@ -15,7 +15,7 @@ interface WeatherCacheRow {
   lon: string | number;
   data: {
     type?: WeatherCacheType;
-    payload?: WeatherCurrentResponse | WeatherForecastResponse;
+    payload?: WeatherCurrentResponse | WeatherForecastResponse | AirQualityResponse;
   };
   fetched_at: Date | null;
   expires_at: Date;
@@ -37,6 +37,7 @@ interface OpenMeteoCurrentResponse {
     apparent_temperature: number;
     is_day: number;
     precipitation: number;
+    uv_index: number;
     weather_code: number;
     cloud_cover: number;
     pressure_msl: number;
@@ -62,6 +63,18 @@ interface OpenMeteoForecastResponse extends OpenMeteoCurrentResponse {
     sunrise: string[];
     sunset: string[];
   };
+  hourly?: {
+    time: string[];
+    temperature_2m: number[];
+    weather_code: number[];
+    precipitation_probability: number[];
+  };
+}
+
+interface OpenMeteoAirQualityResponse {
+  current?: {
+    european_aqi: number;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -81,6 +94,7 @@ export interface WeatherCurrentResponse {
     apparentTemperature: number;
     humidity: number;
     precipitation: number;
+    uv_index: number;
     weatherCode: number;
     isDay: boolean;
     cloudCover: number;
@@ -118,10 +132,20 @@ export interface WeatherForecastResponse {
     sunrise: string;
     sunset: string;
   }>;
+  hourly: Array<{
+    time: string;
+    temperature: number;
+    weatherCode: number;
+    precipitationProbability: number;
+  }>;
   meta: {
     source: 'cache' | 'live';
     cacheTtlMinutes: number;
   };
+}
+
+export interface AirQualityResponse {
+  aqi: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -130,6 +154,7 @@ export interface WeatherForecastResponse {
 
 const CURRENT_CACHE_TTL_MINUTES = 10;
 const FORECAST_CACHE_TTL_MINUTES = 30;
+const AIR_QUALITY_CACHE_TTL_MINUTES = 10;
 
 // ---------------------------------------------------------------------------
 // Configuración del cliente HTTP
@@ -137,6 +162,11 @@ const FORECAST_CACHE_TTL_MINUTES = 30;
 
 const weatherApi = axios.create({
   baseURL: 'https://api.open-meteo.com/v1',
+  timeout: 7000,
+});
+
+const airQualityApi = axios.create({
+  baseURL: 'https://air-quality-api.open-meteo.com/v1',
   timeout: 7000,
 });
 
@@ -150,6 +180,7 @@ const currentVariables = [
   'apparent_temperature',
   'is_day',
   'precipitation',
+  'uv_index',
   'weather_code',
   'cloud_cover',
   'pressure_msl',
@@ -173,7 +204,11 @@ const dailyVariables = [
   'sunset',
 ].join(',');
 
-
+const hourlyVariables = [
+  'temperature_2m',
+  'weather_code',
+  'precipitation_probability',
+].join(',');
 
 // ---------------------------------------------------------------------------
 // Normalizers (API externa → respuesta pública)
@@ -201,6 +236,7 @@ const normalizeCurrent = (
       apparentTemperature: data.current.apparent_temperature,
       humidity: data.current.relative_humidity_2m,
       precipitation: data.current.precipitation,
+      uv_index: data.current.uv_index,
       weatherCode: data.current.weather_code,
       isDay: data.current.is_day === 1,
       cloudCover: data.current.cloud_cover,
@@ -234,6 +270,7 @@ const normalizeForecast = (
         apparentTemperature: data.current.apparent_temperature,
         humidity: data.current.relative_humidity_2m,
         precipitation: data.current.precipitation,
+        uv_index: data.current.uv_index,
         weatherCode: data.current.weather_code,
         isDay: data.current.is_day === 1,
         cloudCover: data.current.cloud_cover,
@@ -258,11 +295,23 @@ const normalizeForecast = (
     sunrise: data.daily?.sunrise[index] ?? '',
     sunset: data.daily?.sunset[index] ?? '',
   })),
+  hourly: (data.hourly?.time ?? []).map((time, index) => ({
+    time,
+    temperature: data.hourly?.temperature_2m[index] ?? 0,
+    weatherCode: data.hourly?.weather_code[index] ?? 0,
+    precipitationProbability: data.hourly?.precipitation_probability[index] ?? 0,
+  })),
   meta: {
     source,
     cacheTtlMinutes: FORECAST_CACHE_TTL_MINUTES,
   },
 });
+
+const hasCurrentDashboardData = (weather: WeatherCurrentResponse): boolean =>
+  typeof weather.current.uv_index === 'number';
+
+const hasForecastDashboardData = (weather: WeatherForecastResponse): boolean =>
+  Array.isArray(weather.hourly) && weather.hourly.length >= 48;
 
 // ---------------------------------------------------------------------------
 // Caché helpers
@@ -295,7 +344,7 @@ const setCachedWeather = async (
   lat: number,
   lon: number,
   type: WeatherCacheType,
-  payload: WeatherCurrentResponse | WeatherForecastResponse,
+  payload: WeatherCurrentResponse | WeatherForecastResponse | AirQualityResponse,
   ttlMinutes: number
 ): Promise<void> => {
   await pool.query(
@@ -316,7 +365,7 @@ export const getCurrentWeather = async (
 ): Promise<WeatherCurrentResponse> => {
   const cachedWeather = await getCachedWeather<WeatherCurrentResponse>(lat, lon, 'current');
 
-  if (cachedWeather) {
+  if (cachedWeather && hasCurrentDashboardData(cachedWeather)) {
     return {
       ...cachedWeather,
       meta: {
@@ -356,7 +405,7 @@ export const getForecastWeather = async (
 ): Promise<WeatherForecastResponse> => {
   const cachedWeather = await getCachedWeather<WeatherForecastResponse>(lat, lon, 'forecast');
 
-  if (cachedWeather) {
+  if (cachedWeather && hasForecastDashboardData(cachedWeather)) {
     return {
       ...cachedWeather,
       meta: {
@@ -373,6 +422,7 @@ export const getForecastWeather = async (
         longitude: lon,
         current: currentVariables,
         daily: dailyVariables,
+        hourly: hourlyVariables,
         forecast_days: 7,
         timezone: 'auto',
       },
@@ -382,6 +432,42 @@ export const getForecastWeather = async (
     await setCachedWeather(lat, lon, 'forecast', forecast, FORECAST_CACHE_TTL_MINUTES);
 
     return forecast;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new AppError(502, 'Weather provider is unavailable');
+    }
+
+    throw error;
+  }
+};
+
+/** Obtiene el índice europeo de calidad de aire para una coordenada. Usa caché si está disponible. */
+export const getAirQuality = async (lat: number, lon: number): Promise<AirQualityResponse> => {
+  const cachedAirQuality = await getCachedWeather<AirQualityResponse>(lat, lon, 'air-quality');
+
+  if (cachedAirQuality) {
+    return cachedAirQuality;
+  }
+
+  try {
+    const response = await airQualityApi.get<OpenMeteoAirQualityResponse>('/air-quality', {
+      params: {
+        latitude: lat,
+        longitude: lon,
+        current: 'european_aqi',
+      },
+    });
+
+    const aqi = response.data.current?.european_aqi;
+
+    if (aqi === undefined) {
+      throw new AppError(502, 'Weather provider returned no air quality data');
+    }
+
+    const airQuality = { aqi };
+    await setCachedWeather(lat, lon, 'air-quality', airQuality, AIR_QUALITY_CACHE_TTL_MINUTES);
+
+    return airQuality;
   } catch (error) {
     if (axios.isAxiosError(error)) {
       throw new AppError(502, 'Weather provider is unavailable');

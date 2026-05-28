@@ -37,40 +37,38 @@ exports.logout = exports.me = exports.login = exports.register = void 0;
 const authService = __importStar(require("../services/auth.service"));
 const http_1 = require("../utils/http");
 const user_1 = require("../utils/user");
+const validation_1 = require("../utils/validation");
+// ---------------------------------------------------------------------------
+// Handlers
+// ---------------------------------------------------------------------------
+/** POST /auth/register — Registra un nuevo usuario. */
 const register = async (req, res) => {
     try {
-        const { name, email, password } = req.body;
-        if (!name || !email || !password) {
-            res.status(400).json({ error: 'Name, email and password are required' });
-            return;
-        }
+        const name = (0, validation_1.parseRequiredString)(req.body.name, 'name', { minLength: 2, maxLength: 100 });
+        const email = (0, validation_1.parseRequiredString)(req.body.email, 'email', { minLength: 5, maxLength: 255 });
+        const password = (0, validation_1.parsePassword)(req.body.password, 'password');
         const user = await authService.register({ name, email, password });
         res.status(201).json({ user });
     }
     catch (error) {
-        if (error instanceof Error && 'code' in error && error.code === '23505') {
-            res.status(409).json({ error: 'Email already registered' });
-            return;
-        }
-        res.status(500).json({ error: 'Internal server error' });
+        (0, http_1.handleControllerError)(res, error);
     }
 };
 exports.register = register;
+/** POST /auth/login — Autentica un usuario y retorna un JWT. */
 const login = async (req, res) => {
     try {
-        const { email, password } = req.body;
-        if (!email || !password) {
-            res.status(400).json({ error: 'Email and password are required' });
-            return;
-        }
+        const email = (0, validation_1.parseRequiredString)(req.body.email, 'email');
+        const password = (0, validation_1.parseRequiredString)(req.body.password, 'password');
         const { token, user } = await authService.login({ email, password });
         res.json({ token, user });
     }
-    catch {
-        res.status(401).json({ error: 'Invalid credentials' });
+    catch (error) {
+        (0, http_1.handleControllerError)(res, error);
     }
 };
 exports.login = login;
+/** GET /auth/me — Retorna los datos del usuario autenticado. */
 const me = async (req, res) => {
     try {
         const userId = (0, http_1.getAuthenticatedUserId)(req);
@@ -82,6 +80,7 @@ const me = async (req, res) => {
     }
 };
 exports.me = me;
+/** POST /auth/logout — Logout (manejado del lado del cliente). */
 const logout = async (_req, res) => {
     res.json({
         message: 'Logout handled client-side by removing the bearer token',

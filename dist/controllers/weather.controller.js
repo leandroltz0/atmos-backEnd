@@ -33,10 +33,14 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getForecastWeather = exports.getCurrentWeather = void 0;
+exports.getAirQuality = exports.getForecastWeather = exports.getCurrentWeather = void 0;
 const weatherService = __importStar(require("../services/weather.service"));
 const http_1 = require("../utils/http");
 const validation_1 = require("../utils/validation");
+// ---------------------------------------------------------------------------
+// Handlers
+// ---------------------------------------------------------------------------
+/** GET /weather/current — Obtiene el clima actual para una coordenada. */
 const getCurrentWeather = async (req, res) => {
     try {
         const lat = (0, validation_1.parseNumber)(req.query.lat, 'lat');
@@ -49,6 +53,7 @@ const getCurrentWeather = async (req, res) => {
     }
 };
 exports.getCurrentWeather = getCurrentWeather;
+/** GET /weather/forecast — Obtiene el pronóstico de 7 días para una coordenada. */
 const getForecastWeather = async (req, res) => {
     try {
         const lat = (0, validation_1.parseNumber)(req.query.lat, 'lat');
@@ -61,3 +66,16 @@ const getForecastWeather = async (req, res) => {
     }
 };
 exports.getForecastWeather = getForecastWeather;
+/** GET /weather/air-quality — Obtiene el índice europeo de calidad de aire para una coordenada. */
+const getAirQuality = async (req, res) => {
+    try {
+        const lat = (0, validation_1.parseNumber)(req.query.lat, 'lat');
+        const lon = (0, validation_1.parseNumber)(req.query.lon, 'lon');
+        const airQuality = await weatherService.getAirQuality(lat, lon);
+        res.json(airQuality);
+    }
+    catch (error) {
+        (0, http_1.handleControllerError)(res, error);
+    }
+};
+exports.getAirQuality = getAirQuality;

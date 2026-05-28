@@ -38,6 +38,10 @@ const userService = __importStar(require("../services/user.service"));
 const http_1 = require("../utils/http");
 const user_1 = require("../utils/user");
 const validation_1 = require("../utils/validation");
+// ---------------------------------------------------------------------------
+// Handlers
+// ---------------------------------------------------------------------------
+/** GET /users/me — Obtiene el perfil del usuario autenticado. */
 const getMe = async (req, res) => {
     try {
         const userId = (0, http_1.getAuthenticatedUserId)(req);
@@ -49,6 +53,7 @@ const getMe = async (req, res) => {
     }
 };
 exports.getMe = getMe;
+/** PATCH /users/me — Actualiza el nombre del usuario. */
 const updateMe = async (req, res) => {
     try {
         if (!(0, http_1.isRecord)(req.body)) {
@@ -66,10 +71,11 @@ const updateMe = async (req, res) => {
     }
 };
 exports.updateMe = updateMe;
+/** PATCH /users/me/password — Cambia la contraseña del usuario. */
 const updatePassword = async (req, res) => {
     try {
         if (!(0, http_1.isRecord)(req.body)) {
-            res.status(400).json({ error: 'Invalid request body' });
+            res.status(401).json({ error: 'the resquest body is not valid' });
             return;
         }
         const userId = (0, http_1.getAuthenticatedUserId)(req);
@@ -83,6 +89,7 @@ const updatePassword = async (req, res) => {
     }
 };
 exports.updatePassword = updatePassword;
+/** DELETE /users/me — Elimina la cuenta del usuario y todos sus datos. */
 const deleteMe = async (req, res) => {
     try {
         const userId = (0, http_1.getAuthenticatedUserId)(req);

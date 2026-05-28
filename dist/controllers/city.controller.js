@@ -36,6 +36,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.searchCities = void 0;
 const cityService = __importStar(require("../services/city.service"));
 const http_1 = require("../utils/http");
+// ---------------------------------------------------------------------------
+// Handlers
+// ---------------------------------------------------------------------------
+/** GET /cities/search — Busca ciudades por nombre. */
 const searchCities = async (req, res) => {
     try {
         const query = typeof req.query.q === 'string' ? req.query.q : '';

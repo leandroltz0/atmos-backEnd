@@ -33,3 +33,16 @@ export const getForecastWeather = async (req: Request, res: Response): Promise<v
     handleControllerError(res, error);
   }
 };
+
+/** GET /weather/air-quality — Obtiene el índice europeo de calidad de aire para una coordenada. */
+export const getAirQuality = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const lat = parseNumber(req.query.lat, 'lat');
+    const lon = parseNumber(req.query.lon, 'lon');
+    const airQuality = await weatherService.getAirQuality(lat, lon);
+
+    res.json(airQuality);
+  } catch (error) {
+    handleControllerError(res, error);
+  }
+};

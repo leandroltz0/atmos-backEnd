@@ -3,6 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.reorderFavorites = exports.removeFavorite = exports.addFavorite = exports.listFavorites = void 0;
 const db_1 = require("../config/db");
 const http_1 = require("../utils/http");
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+/** Convierte una fila de la base de datos en una ciudad favorita normalizada. */
 const toFavoriteCity = (row, sortOrder) => ({
     cityId: String(row.id),
     name: row.name,
@@ -15,6 +19,10 @@ const toFavoriteCity = (row, sortOrder) => ({
     sortOrder,
     createdAt: row.created_at,
 });
+// ---------------------------------------------------------------------------
+// Funciones públicas
+// ---------------------------------------------------------------------------
+/** Obtiene todas las ciudades favoritas de un usuario, ordenadas por fecha de creación. */
 const listFavorites = async (userId) => {
     const result = await db_1.pool.query(`SELECT id, user_id, name, country, lat, lon, is_default, created_at
      FROM favorite_cities
@@ -23,6 +31,7 @@ const listFavorites = async (userId) => {
     return result.rows.map((row, index) => toFavoriteCity(row, index));
 };
 exports.listFavorites = listFavorites;
+/** Agrega una nueva ciudad favorita. Lanza error 409 si ya existe. */
 const addFavorite = async (userId, input) => {
     const duplicateResult = await db_1.pool.query(`SELECT id, user_id, name, country, lat, lon, is_default, created_at
      FROM favorite_cities
@@ -44,6 +53,7 @@ const addFavorite = async (userId, input) => {
     return toFavoriteCity(row, sortOrder >= 0 ? sortOrder : favorites.length);
 };
 exports.addFavorite = addFavorite;
+/** Elimina una ciudad favorita por su ID. Lanza error 404 si no existe. */
 const removeFavorite = async (userId, cityId) => {
     const result = await db_1.pool.query('DELETE FROM favorite_cities WHERE user_id = $1 AND id = $2', [userId, Number(cityId)]);
     if (result.rowCount === 0) {
@@ -51,6 +61,7 @@ const removeFavorite = async (userId, cityId) => {
     }
 };
 exports.removeFavorite = removeFavorite;
+/** Reordena las ciudades favoritas según el orden de IDs proporcionado. */
 const reorderFavorites = async (userId, orderedCityIds) => {
     const numericIds = orderedCityIds.map((cityId) => Number(cityId));
     if (numericIds.some((value) => !Number.isInteger(value) || value <= 0)) {

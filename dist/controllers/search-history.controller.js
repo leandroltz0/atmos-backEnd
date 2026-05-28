@@ -37,6 +37,10 @@ exports.clearSearchHistory = exports.createSearchHistory = exports.getSearchHist
 const searchHistoryService = __importStar(require("../services/search-history.service"));
 const http_1 = require("../utils/http");
 const validation_1 = require("../utils/validation");
+// ---------------------------------------------------------------------------
+// Handlers
+// ---------------------------------------------------------------------------
+/** GET /search-history — Obtiene el historial de búsqueda del usuario. */
 const getSearchHistory = async (req, res) => {
     try {
         const userId = (0, http_1.getAuthenticatedUserId)(req);
@@ -48,6 +52,7 @@ const getSearchHistory = async (req, res) => {
     }
 };
 exports.getSearchHistory = getSearchHistory;
+/** POST /search-history — Agrega una entrada al historial de búsqueda. */
 const createSearchHistory = async (req, res) => {
     try {
         if (!(0, http_1.isRecord)(req.body)) {
@@ -72,6 +77,7 @@ const createSearchHistory = async (req, res) => {
     }
 };
 exports.createSearchHistory = createSearchHistory;
+/** DELETE /search-history — Limpia todo el historial de búsqueda del usuario. */
 const clearSearchHistory = async (req, res) => {
     try {
         const userId = (0, http_1.getAuthenticatedUserId)(req);

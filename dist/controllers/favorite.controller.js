@@ -37,6 +37,10 @@ exports.reorderFavorites = exports.deleteFavorite = exports.createFavorite = exp
 const favoriteService = __importStar(require("../services/favorite.service"));
 const http_1 = require("../utils/http");
 const validation_1 = require("../utils/validation");
+// ---------------------------------------------------------------------------
+// Handlers
+// ---------------------------------------------------------------------------
+/** GET /favorites — Lista las ciudades favoritas del usuario. */
 const getFavorites = async (req, res) => {
     try {
         const userId = (0, http_1.getAuthenticatedUserId)(req);
@@ -48,6 +52,7 @@ const getFavorites = async (req, res) => {
     }
 };
 exports.getFavorites = getFavorites;
+/** POST /favorites — Agrega una nueva ciudad favorita. */
 const createFavorite = async (req, res) => {
     try {
         if (!(0, http_1.isRecord)(req.body)) {
@@ -72,6 +77,7 @@ const createFavorite = async (req, res) => {
     }
 };
 exports.createFavorite = createFavorite;
+/** DELETE /favorites/:cityId — Elimina una ciudad favorita. */
 const deleteFavorite = async (req, res) => {
     try {
         const userId = (0, http_1.getAuthenticatedUserId)(req);
@@ -84,6 +90,7 @@ const deleteFavorite = async (req, res) => {
     }
 };
 exports.deleteFavorite = deleteFavorite;
+/** PATCH /favorites/reorder — Reordena las ciudades favoritas. */
 const reorderFavorites = async (req, res) => {
     try {
         if (!(0, http_1.isRecord)(req.body)) {

@@ -3,22 +3,37 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getForecastWeather = exports.getCurrentWeather = void 0;
+exports.getAirQuality = exports.getForecastWeather = exports.getCurrentWeather = void 0;
 const axios_1 = __importDefault(require("axios"));
 const db_1 = require("../config/db");
 const http_1 = require("../utils/http");
+// ---------------------------------------------------------------------------
+// Constantes
+// ---------------------------------------------------------------------------
 const CURRENT_CACHE_TTL_MINUTES = 10;
 const FORECAST_CACHE_TTL_MINUTES = 30;
+const AIR_QUALITY_CACHE_TTL_MINUTES = 10;
+// ---------------------------------------------------------------------------
+// Configuración del cliente HTTP
+// ---------------------------------------------------------------------------
 const weatherApi = axios_1.default.create({
     baseURL: 'https://api.open-meteo.com/v1',
     timeout: 7000,
 });
+const airQualityApi = axios_1.default.create({
+    baseURL: 'https://air-quality-api.open-meteo.com/v1',
+    timeout: 7000,
+});
+// ---------------------------------------------------------------------------
+// Variables de la API (query params)
+// ---------------------------------------------------------------------------
 const currentVariables = [
     'temperature_2m',
     'relative_humidity_2m',
     'apparent_temperature',
     'is_day',
     'precipitation',
+    'uv_index',
     'weather_code',
     'cloud_cover',
     'pressure_msl',
@@ -40,6 +55,15 @@ const dailyVariables = [
     'sunrise',
     'sunset',
 ].join(',');
+const hourlyVariables = [
+    'temperature_2m',
+    'weather_code',
+    'precipitation_probability',
+].join(',');
+// ---------------------------------------------------------------------------
+// Normalizers (API externa → respuesta pública)
+// ---------------------------------------------------------------------------
+/** Normaliza la respuesta de clima actual de Open-Meteo al formato público. */
 const normalizeCurrent = (data, source) => {
     if (!data.current) {
         throw new http_1.AppError(502, 'Weather provider returned no current weather data');
@@ -57,6 +81,7 @@ const normalizeCurrent = (data, source) => {
             apparentTemperature: data.current.apparent_temperature,
             humidity: data.current.relative_humidity_2m,
             precipitation: data.current.precipitation,
+            uv_index: data.current.uv_index,
             weatherCode: data.current.weather_code,
             isDay: data.current.is_day === 1,
             cloudCover: data.current.cloud_cover,
@@ -71,6 +96,7 @@ const normalizeCurrent = (data, source) => {
         },
     };
 };
+/** Normaliza la respuesta de pronóstico de Open-Meteo al formato público. */
 const normalizeForecast = (data, source) => ({
     location: {
         lat: data.latitude,
@@ -85,6 +111,7 @@ const normalizeForecast = (data, source) => ({
             apparentTemperature: data.current.apparent_temperature,
             humidity: data.current.relative_humidity_2m,
             precipitation: data.current.precipitation,
+            uv_index: data.current.uv_index,
             weatherCode: data.current.weather_code,
             isDay: data.current.is_day === 1,
             cloudCover: data.current.cloud_cover,
@@ -109,11 +136,23 @@ const normalizeForecast = (data, source) => ({
         sunrise: data.daily?.sunrise[index] ?? '',
         sunset: data.daily?.sunset[index] ?? '',
     })),
+    hourly: (data.hourly?.time ?? []).map((time, index) => ({
+        time,
+        temperature: data.hourly?.temperature_2m[index] ?? 0,
+        weatherCode: data.hourly?.weather_code[index] ?? 0,
+        precipitationProbability: data.hourly?.precipitation_probability[index] ?? 0,
+    })),
     meta: {
         source,
         cacheTtlMinutes: FORECAST_CACHE_TTL_MINUTES,
     },
 });
+const hasCurrentDashboardData = (weather) => typeof weather.current.uv_index === 'number';
+const hasForecastDashboardData = (weather) => Array.isArray(weather.hourly) && weather.hourly.length >= 48;
+// ---------------------------------------------------------------------------
+// Caché helpers
+// ---------------------------------------------------------------------------
+/** Busca datos de clima en caché. Retorna null si no hay caché válido. */
 const getCachedWeather = async (lat, lon, type) => {
     const result = await db_1.pool.query(`SELECT id, lat, lon, data, fetched_at, expires_at
      FROM weather_cache
@@ -129,13 +168,18 @@ const getCachedWeather = async (lat, lon, type) => {
     }
     return row.data.payload;
 };
+/** Guarda datos de clima en caché con un TTL en minutos. */
 const setCachedWeather = async (lat, lon, type, payload, ttlMinutes) => {
     await db_1.pool.query(`INSERT INTO weather_cache (lat, lon, data, fetched_at, expires_at)
      VALUES ($1, $2, $3::jsonb, NOW(), NOW() + ($4 * INTERVAL '1 minute'))`, [lat, lon, JSON.stringify({ type, payload }), ttlMinutes]);
 };
+// ---------------------------------------------------------------------------
+// Funciones públicas
+// ---------------------------------------------------------------------------
+/** Obtiene el clima actual para una coordenada. Usa caché si está disponible. */
 const getCurrentWeather = async (lat, lon) => {
     const cachedWeather = await getCachedWeather(lat, lon, 'current');
-    if (cachedWeather) {
+    if (cachedWeather && hasCurrentDashboardData(cachedWeather)) {
         return {
             ...cachedWeather,
             meta: {
@@ -165,9 +209,10 @@ const getCurrentWeather = async (lat, lon) => {
     }
 };
 exports.getCurrentWeather = getCurrentWeather;
+/** Obtiene el pronóstico de 7 días para una coordenada. Usa caché si está disponible. */
 const getForecastWeather = async (lat, lon) => {
     const cachedWeather = await getCachedWeather(lat, lon, 'forecast');
-    if (cachedWeather) {
+    if (cachedWeather && hasForecastDashboardData(cachedWeather)) {
         return {
             ...cachedWeather,
             meta: {
@@ -183,6 +228,7 @@ const getForecastWeather = async (lat, lon) => {
                 longitude: lon,
                 current: currentVariables,
                 daily: dailyVariables,
+                hourly: hourlyVariables,
                 forecast_days: 7,
                 timezone: 'auto',
             },
@@ -199,3 +245,33 @@ const getForecastWeather = async (lat, lon) => {
     }
 };
 exports.getForecastWeather = getForecastWeather;
+/** Obtiene el índice europeo de calidad de aire para una coordenada. Usa caché si está disponible. */
+const getAirQuality = async (lat, lon) => {
+    const cachedAirQuality = await getCachedWeather(lat, lon, 'air-quality');
+    if (cachedAirQuality) {
+        return cachedAirQuality;
+    }
+    try {
+        const response = await airQualityApi.get('/air-quality', {
+            params: {
+                latitude: lat,
+                longitude: lon,
+                current: 'european_aqi',
+            },
+        });
+        const aqi = response.data.current?.european_aqi;
+        if (aqi === undefined) {
+            throw new http_1.AppError(502, 'Weather provider returned no air quality data');
+        }
+        const airQuality = { aqi };
+        await setCachedWeather(lat, lon, 'air-quality', airQuality, AIR_QUALITY_CACHE_TTL_MINUTES);
+        return airQuality;
+    }
+    catch (error) {
+        if (axios_1.default.isAxiosError(error)) {
+            throw new http_1.AppError(502, 'Weather provider is unavailable');
+        }
+        throw error;
+    }
+};
+exports.getAirQuality = getAirQuality;

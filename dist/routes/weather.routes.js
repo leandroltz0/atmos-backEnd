@@ -38,4 +38,5 @@ const weatherController = __importStar(require("../controllers/weather.controlle
 const router = (0, express_1.Router)();
 router.get('/current', weatherController.getCurrentWeather);
 router.get('/forecast', weatherController.getForecastWeather);
+router.get('/air-quality', weatherController.getAirQuality);
 exports.default = router;

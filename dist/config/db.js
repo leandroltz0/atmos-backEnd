@@ -7,6 +7,7 @@ exports.pool = void 0;
 const pg_1 = require("pg");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
+/** Pool de conexiones a PostgreSQL. */
 exports.pool = new pg_1.Pool({
     connectionString: process.env.DATABASE_URL,
 });

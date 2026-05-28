@@ -37,6 +37,10 @@ exports.updatePreferences = exports.getPreferences = void 0;
 const preferenceService = __importStar(require("../services/preference.service"));
 const http_1 = require("../utils/http");
 const validation_1 = require("../utils/validation");
+// ---------------------------------------------------------------------------
+// Handlers
+// ---------------------------------------------------------------------------
+/** GET /preferences — Obtiene las preferencias del usuario. */
 const getPreferences = async (req, res) => {
     try {
         const userId = (0, http_1.getAuthenticatedUserId)(req);
@@ -48,6 +52,7 @@ const getPreferences = async (req, res) => {
     }
 };
 exports.getPreferences = getPreferences;
+/** PATCH /preferences — Actualiza parcialmente las preferencias del usuario. */
 const updatePreferences = async (req, res) => {
     try {
         if (!(0, http_1.isRecord)(req.body)) {

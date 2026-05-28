@@ -1,6 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handleControllerError = exports.isRecord = exports.getAuthenticatedUserId = exports.AppError = void 0;
+// ---------------------------------------------------------------------------
+// Error personalizado
+// ---------------------------------------------------------------------------
+/** Error de aplicación con código de estado HTTP. */
 class AppError extends Error {
     statusCode;
     constructor(statusCode, message) {
@@ -9,6 +13,10 @@ class AppError extends Error {
     }
 }
 exports.AppError = AppError;
+// ---------------------------------------------------------------------------
+// Helpers de request
+// ---------------------------------------------------------------------------
+/** Extrae el ID del usuario autenticado del request. Lanza 401 si no está autenticado. */
 const getAuthenticatedUserId = (req) => {
     if (!req.user?.userId) {
         throw new AppError(401, 'Authentication required');
@@ -16,8 +24,13 @@ const getAuthenticatedUserId = (req) => {
     return req.user.userId;
 };
 exports.getAuthenticatedUserId = getAuthenticatedUserId;
+/** Verifica que un valor sea un objeto plano (no array, no null). */
 const isRecord = (value) => typeof value === 'object' && value !== null && !Array.isArray(value);
 exports.isRecord = isRecord;
+// ---------------------------------------------------------------------------
+// Manejo de errores en controllers
+// ---------------------------------------------------------------------------
+/** Maneja errores en controllers: responde con el código HTTP apropiado. */
 const handleControllerError = (res, error) => {
     if (error instanceof AppError) {
         res.status(error.statusCode).json({ error: error.message });

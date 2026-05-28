@@ -2,6 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.updatePreferences = exports.getPreferences = void 0;
 const db_1 = require("../config/db");
+// ---------------------------------------------------------------------------
+// Constantes
+// ---------------------------------------------------------------------------
 const DEFAULT_PREFERENCES = {
     tempUnit: 'celsius',
     windUnit: 'kmh',
@@ -12,6 +15,10 @@ const DEFAULT_PREFERENCES = {
     autoUpdate: true,
     offlineMode: false,
 };
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+/** Convierte una fila de la base de datos en preferencias normalizadas, aplicando valores por defecto. */
 const toPreferences = (row) => ({
     tempUnit: row?.temp_unit ?? DEFAULT_PREFERENCES.tempUnit,
     windUnit: row?.wind_unit ?? DEFAULT_PREFERENCES.windUnit,
@@ -22,6 +29,10 @@ const toPreferences = (row) => ({
     autoUpdate: DEFAULT_PREFERENCES.autoUpdate,
     offlineMode: DEFAULT_PREFERENCES.offlineMode,
 });
+// ---------------------------------------------------------------------------
+// Funciones públicas
+// ---------------------------------------------------------------------------
+/** Obtiene las preferencias del usuario. Crea valores por defecto si no existen. */
 const getPreferences = async (userId) => {
     const result = await db_1.pool.query(`SELECT id, user_id, temp_unit, wind_unit, language, created_at, updated_at
      FROM user_preferences
@@ -36,6 +47,7 @@ const getPreferences = async (userId) => {
     return DEFAULT_PREFERENCES;
 };
 exports.getPreferences = getPreferences;
+/** Actualiza parcialmente las preferencias del usuario (merge con valores actuales). */
 const updatePreferences = async (userId, patch) => {
     const currentPreferences = await (0, exports.getPreferences)(userId);
     const nextPreferences = {

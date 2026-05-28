@@ -37,6 +37,7 @@ app.use('/preferences', preferenceRoutes);
 app.use('/search-history', searchHistoryRoutes);
 app.use('/cities', cityRoutes);
 app.use('/weather', weatherRoutes);
+app.use('/api/weather', weatherRoutes);
 
 // ---------------------------------------------------------------------------
 // Inicio del servidor

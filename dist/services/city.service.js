@@ -6,10 +6,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.searchCities = void 0;
 const axios_1 = __importDefault(require("axios"));
 const http_1 = require("../utils/http");
+// ---------------------------------------------------------------------------
+// Configuración del cliente HTTP
+// ---------------------------------------------------------------------------
 const cityApi = axios_1.default.create({
     baseURL: 'https://geocoding-api.open-meteo.com/v1',
     timeout: 5000,
 });
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+/** Convierte un resultado de la API de Open-Meteo en un `CitySearchResult` normalizado. */
 const toCitySearchResult = (result) => ({
     id: String(result.id),
     name: result.name,
@@ -19,6 +26,10 @@ const toCitySearchResult = (result) => ({
     lat: result.latitude,
     lon: result.longitude,
 });
+// ---------------------------------------------------------------------------
+// Funciones públicas
+// ---------------------------------------------------------------------------
+/** Busca ciudades por nombre usando la API de Open-Meteo. Requiere al menos 2 caracteres. */
 const searchCities = async (query) => {
     if (query.trim().length < 2) {
         throw new http_1.AppError(400, 'Query must contain at least 2 characters');
